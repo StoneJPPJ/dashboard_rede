@@ -473,31 +473,82 @@ if meses_disponiveis:
                         else:
                             st.info("Não há PDVs disponíveis para a categoria selecionada.")
 
-                    # --- SÉRIE TEMPORAL QUINZENAL POR TIPO DE PAGAMENTO ---
-                    st.subheader("Série Temporal Quinzenal por Tipo de Pagamento (Mês Selecionado)")
+                    # --- ANÁLISE COMPARATIVA QUINZENAL (vs Mês Anterior) ---
+                    st.subheader("Análise Quinzenal Comparativa vs Mês Anterior")
 
                     if 'DATA/HORA' in df_mes_filtrado.columns:
                         df_quinz = df_mes_filtrado.copy()
                         df_quinz['DATA'] = pd.to_datetime(df_quinz['DATA/HORA'], errors='coerce').dt.date
                         agrupado = df_quinz.groupby('DATA')['VALOR'].sum().reset_index()
-                        # Comparação quinzenal
+                        
+                        # Encontrar o mês anterior para comparação
+                        mes_anterior = None
+                        indice_mes_atual = meses_disponiveis.index(mes_selecionado)
+                        if indice_mes_atual > 0:
+                            mes_anterior = meses_disponiveis[indice_mes_atual - 1]
+                            arquivo_anterior = meses_arquivos[mes_anterior]
+                            
+                            # Carregar dados do mês anterior
+                            if os.path.exists(os.path.join(PROCESSED_DIR, arquivo_anterior)):
+                                df_mes_anterior = carregar_processado(arquivo_anterior.replace('.parquet', ''))
+                                
+                                # Aplicar os mesmos filtros ao mês anterior
+                                if categoria_escolhida != 'TODOS':
+                                    df_mes_anterior = df_mes_anterior[df_mes_anterior['TIPO DO TERMINAL'] == categoria_escolhida]
+                                if tipo_pag_escolhido != 'TODOS':
+                                    df_mes_anterior = df_mes_anterior[df_mes_anterior['TIPO DE PAGAMENTO'] == tipo_pag_escolhido]
+                                
+                                # Análise quinzenal do mês anterior
+                                df_quinz_anterior = df_mes_anterior.copy()
+                                df_quinz_anterior['DATA'] = pd.to_datetime(df_quinz_anterior['DATA/HORA'], errors='coerce').dt.date
+                                agrupado_anterior = df_quinz_anterior.groupby('DATA')['VALOR'].sum().reset_index()
+                                
+                                if not agrupado_anterior.empty:
+                                    agrupado_anterior['DIA'] = pd.to_datetime(agrupado_anterior['DATA']).dt.day
+                                    primeira_quinzena_anterior = agrupado_anterior[agrupado_anterior['DIA'] <= 15]['VALOR'].sum()
+                                    segunda_quinzena_anterior = agrupado_anterior[agrupado_anterior['DIA'] > 15]['VALOR'].sum()
+                                else:
+                                    primeira_quinzena_anterior = 0
+                                    segunda_quinzena_anterior = 0
+                            else:
+                                primeira_quinzena_anterior = 0
+                                segunda_quinzena_anterior = 0
+                        else:
+                            primeira_quinzena_anterior = 0
+                            segunda_quinzena_anterior = 0
+                        
+                        # Comparação quinzenal atual
                         if not agrupado.empty:
                             agrupado['DIA'] = pd.to_datetime(agrupado['DATA']).dt.day
                             primeira_quinzena = agrupado[agrupado['DIA'] <= 15]['VALOR'].sum()
                             segunda_quinzena = agrupado[agrupado['DIA'] > 15]['VALOR'].sum()
+                            
                             colq1, colq2 = st.columns(2)
                             with colq1:
+                                # Calcular variação da 1ª quinzena vs mês anterior
+                                if primeira_quinzena_anterior > 0:
+                                    delta_1q = f"{((primeira_quinzena - primeira_quinzena_anterior) / primeira_quinzena_anterior * 100):+.1f}% vs {mes_anterior if mes_anterior else 'N/A'}"
+                                else:
+                                    delta_1q = "Novo" if primeira_quinzena > 0 else ""
+                                
                                 st.metric(
                                     label="1ª Quinzena",
                                     value=f"R$ {primeira_quinzena:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'),
-                                    delta=f"{((primeira_quinzena-segunda_quinzena)/segunda_quinzena*100):+.1f}%" if segunda_quinzena else ""
+                                    delta=delta_1q
                                 )
                             with colq2:
+                                # Calcular variação da 2ª quinzena vs mês anterior
+                                if segunda_quinzena_anterior > 0:
+                                    delta_2q = f"{((segunda_quinzena - segunda_quinzena_anterior) / segunda_quinzena_anterior * 100):+.1f}% vs {mes_anterior if mes_anterior else 'N/A'}"
+                                else:
+                                    delta_2q = "Novo" if segunda_quinzena > 0 else ""
+                                
                                 st.metric(
                                     label="2ª Quinzena",
                                     value=f"R$ {segunda_quinzena:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'),
-                                    delta=f"{((segunda_quinzena-primeira_quinzena)/primeira_quinzena*100):+.1f}%" if primeira_quinzena else ""
+                                    delta=delta_2q
                                 )
+                        
                         # Gráfico quinzenal
                         if tipo_pag_escolhido != "TODOS":
                             tipo_label = tipo_pag_escolhido
