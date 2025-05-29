@@ -197,18 +197,22 @@ if meses_disponiveis:
         with col_grafico1:
             if not df_lista.empty:
                 df_lista['Mês'] = pd.Categorical(df_lista['Mês'], categories=meses_disponiveis, ordered=True)
+                # Criar coluna de texto formatado para as barras
+                df_lista['VALOR_FORMATADO'] = df_lista['VALOR'].apply(lambda x: f"R$ {x:,.0f}".replace(',', '.'))
                 fig_lista = px.bar(
                     df_lista,
                     x='Mês',
                     y='VALOR',
                     title='Evolução de Vendas em Lista',
-                    color_discrete_sequence=['#1f77b4']
+                    color_discrete_sequence=['#1f77b4'],
+                    text='VALOR_FORMATADO'
                 )
                 fig_lista.update_layout(
                     xaxis_title="Mês",
                     yaxis_title="Valor de Vendas (R$)",
                     height=400
                 )
+                fig_lista.update_traces(textposition='outside')
                 st.plotly_chart(fig_lista, use_container_width=True)
             else:
                 st.info("Não há dados de vendas em LISTA para exibir.")
@@ -217,18 +221,22 @@ if meses_disponiveis:
         with col_grafico2:
             if not df_pix.empty:
                 df_pix['Mês'] = pd.Categorical(df_pix['Mês'], categories=meses_disponiveis, ordered=True)
+                # Criar coluna de texto formatado para as barras
+                df_pix['VALOR_FORMATADO'] = df_pix['VALOR'].apply(lambda x: f"R$ {x:,.0f}".replace(',', '.'))
                 fig_pix = px.bar(
                     df_pix,
                     x='Mês',
                     y='VALOR',
                     title='Evolução de Vendas em PIX',
-                    color_discrete_sequence=['#2ca02c']
+                    color_discrete_sequence=['#2ca02c'],
+                    text='VALOR_FORMATADO'
                 )
                 fig_pix.update_layout(
                     xaxis_title="Mês",
                     yaxis_title="Valor de Vendas (R$)",
                     height=400
                 )
+                fig_pix.update_traces(textposition='outside')
                 st.plotly_chart(fig_pix, use_container_width=True)
             else:
                 st.info("Não há dados de vendas em PIX para exibir.")
@@ -468,8 +476,8 @@ if meses_disponiveis:
                     # --- SÉRIE TEMPORAL QUINZENAL POR TIPO DE PAGAMENTO ---
                     st.subheader("Série Temporal Quinzenal por Tipo de Pagamento (Mês Selecionado)")
 
-                    if not df_filtros.empty and 'DATA/HORA' in df_filtros.columns:
-                        df_quinz = df_filtros.copy()
+                    if 'DATA/HORA' in df_mes_filtrado.columns:
+                        df_quinz = df_mes_filtrado.copy()
                         df_quinz['DATA'] = pd.to_datetime(df_quinz['DATA/HORA'], errors='coerce').dt.date
                         agrupado = df_quinz.groupby('DATA')['VALOR'].sum().reset_index()
                         # Comparação quinzenal
