@@ -17,6 +17,15 @@ warnings.filterwarnings('ignore', message='.*dayfirst.*')
 # Configurar pandas para não fazer parsing automático de datas
 pd.options.mode.chained_assignment = None
 
+# Função para mapear categorias de terminal
+def mapear_categoria_terminal(categoria):
+    """
+    Mapeia categorias do CSV para nomes padronizados no dashboard
+    """
+    if categoria in ['POS SOMENTE LISTA', 'LISTA']:
+        return 'LISTA/PIX'
+    return categoria
+
 # Função utilitária para parsing de datas
 def parse_dates_safely(date_series):
     """
@@ -122,6 +131,11 @@ def processar_csv(arquivo, mes_nome=None):
                 # Processar tipo de pagamento
                 if 'TIPO DE PAGAMENTO' in df.columns:
                     df['TIPO DE PAGAMENTO'] = df['TIPO DE PAGAMENTO'].astype(str).str.strip().str.upper()
+                
+                # Mapear categorias de terminal para nomes padronizados
+                if 'TIPO DO TERMINAL' in df.columns:
+                    df['TIPO DO TERMINAL'] = df['TIPO DO TERMINAL'].astype(str).str.strip()
+                    df['TIPO DO TERMINAL'] = df['TIPO DO TERMINAL'].apply(mapear_categoria_terminal)
                 
                 # Tratar coluna de data/hora se existir
                 if 'DATA/HORA' in df.columns:
@@ -323,7 +337,7 @@ if meses_disponiveis:
                 tipos_pagamento_disponiveis = ['TODOS'] + sorted(df_all['TIPO DE PAGAMENTO'].dropna().unique().tolist())
             elif categoria_escolhida == 'POS':
                 tipos_pagamento_disponiveis = ['TODOS', 'DINHEIRO', 'DÉBITO', 'PIX', 'LISTA']
-            elif categoria_escolhida in ['POS SOMENTE LISTA', 'LISTA', 'LISTA/PIX']:
+            elif categoria_escolhida == 'LISTA/PIX':
                 tipos_pagamento_disponiveis = ['TODOS', 'LISTA', 'PIX']
             elif categoria_escolhida == 'TOTEM DE RECARGA':
                 tipos_pagamento_disponiveis = ['TODOS', 'DÉBITO', 'PIX', 'LISTA']
@@ -391,14 +405,14 @@ if meses_disponiveis:
                         with col5:
                             st.metric("Lista", f"R$ {valor_lista:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
                     
-                    elif categoria_escolhida in ['POS SOMENTE LISTA', 'LISTA', 'LISTA/PIX']:
-                        # LISTA/PIX (antigo POS SOMENTE LISTA): total geral, lista, pix
+                    elif categoria_escolhida == 'LISTA/PIX':
+                        # LISTA/PIX: total de vendas, lista, pix
                         valor_lista = df_mes_filtrado[df_mes_filtrado['TIPO DE PAGAMENTO'] == 'LISTA']['VALOR'].sum()
                         valor_pix = df_mes_filtrado[df_mes_filtrado['TIPO DE PAGAMENTO'] == 'PIX']['VALOR'].sum()
                         
                         col1, col2, col3 = st.columns(3)
                         with col1:
-                            st.metric("Total Lista/PIX (PDV)", f"R$ {valor_total:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+                            st.metric("Total de Vendas (PDV)", f"R$ {valor_total:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
                         with col2:
                             st.metric("Lista (PDV)", f"R$ {valor_lista:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
                         with col3:
@@ -519,13 +533,13 @@ if meses_disponiveis:
                                     st.metric("Lista (PDV)", f"R$ {valor_lista:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
                             
                             elif categoria_escolhida in ['POS SOMENTE LISTA', 'LISTA', 'LISTA/PIX']:
-                                # LISTA/PIX (antigo POS SOMENTE LISTA): total geral, lista, pix
+                                # LISTA/PIX: total de vendas, lista, pix
                                 valor_lista = df_pdv[df_pdv['TIPO DE PAGAMENTO'] == 'LISTA']['VALOR'].sum()
                                 valor_pix = df_pdv[df_pdv['TIPO DE PAGAMENTO'] == 'PIX']['VALOR'].sum()
                                 
                                 col1, col2, col3 = st.columns(3)
                                 with col1:
-                                    st.metric("Total Lista/PIX (PDV)", f"R$ {valor_total:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+                                    st.metric("Total de Vendas (PDV)", f"R$ {valor_total:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
                                 with col2:
                                     st.metric("Lista (PDV)", f"R$ {valor_lista:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
                                 with col3:
