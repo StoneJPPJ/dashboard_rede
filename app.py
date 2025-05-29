@@ -12,6 +12,10 @@ import warnings
 # Suprimir warnings específicos de parsing de datas
 warnings.filterwarnings('ignore', message='.*Parsing dates in.*')
 warnings.filterwarnings('ignore', category=UserWarning, module='pandas')
+warnings.filterwarnings('ignore', message='.*dayfirst.*')
+
+# Configurar pandas para não fazer parsing automático de datas
+pd.options.mode.chained_assignment = None
 
 # Função utilitária para parsing de datas
 def parse_dates_safely(date_series):
@@ -88,27 +92,48 @@ def processar_csv(arquivo, mes_nome=None):
         encodings = ['utf-8', 'latin1', 'iso-8859-1']
         for encoding in encodings:
             try:
-                df = pd.read_csv(
-                    arquivo,
-                    encoding=encoding,
-                    sep=';',
-                    on_bad_lines='skip',
-                    skipinitialspace=True,
-                    skip_blank_lines=True,
-                    dtype={'VALOR PAGO': str}
-                )
+                # Suprimir warnings temporariamente durante o carregamento
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    df = pd.read_csv(
+                        arquivo,
+                        encoding=encoding,
+                        sep=';',
+                        on_bad_lines='skip',
+                        skipinitialspace=True,
+                        skip_blank_lines=True,
+                        dtype={'VALOR PAGO': str},
+                        parse_dates=False,  # Evitar parsing automático de datas
+                        date_parser=None    # Não usar parser automático
+                    )
+                
+                # Renomear coluna de valor se necessário
                 if 'VALOR PAGO' in df.columns:
                     df = df.rename(columns={'VALOR PAGO': 'VALOR'})
+                
+                # Processar coluna de valor
                 if 'VALOR' in df.columns:
                     df['VALOR'] = df['VALOR'].astype(str).str.replace(r'[^\d.,]', '', regex=True)
                     df['VALOR'] = df['VALOR'].str.replace(',', '.')
                     df['VALOR'] = pd.to_numeric(df['VALOR'], errors='coerce')
                     df = df.dropna(subset=['VALOR'])
                     df = df[df['VALOR'] >= 0]
+                
+                # Processar tipo de pagamento
                 if 'TIPO DE PAGAMENTO' in df.columns:
                     df['TIPO DE PAGAMENTO'] = df['TIPO DE PAGAMENTO'].astype(str).str.strip().str.upper()
+                
+                # Tratar coluna de data/hora se existir
+                if 'DATA/HORA' in df.columns:
+                    # Converter para string primeiro para evitar warnings
+                    df['DATA/HORA'] = df['DATA/HORA'].astype(str)
+                    # Usar nossa função segura de parsing somente se necessário para análises futuras
+                    # Por agora, deixamos como string para evitar warnings durante o carregamento
+                
+                # Adicionar mês se fornecido
                 if mes_nome is not None:
                     df['Mês'] = mes_nome
+                
                 return df
             except UnicodeDecodeError:
                 continue
