@@ -478,17 +478,88 @@ if meses_disponiveis:
                             if tipo_pag_escolhido != 'TODOS':
                                 df_pdv = df_pdv[df_pdv['TIPO DE PAGAMENTO'] == tipo_pag_escolhido]
 
-                            # Cards para o PDV específico
+                            # Cards dinâmicos para o PDV específico baseados na categoria
                             valor_total = df_pdv['VALOR'].sum()
-                            valor_lista = df_pdv[df_pdv['TIPO DE PAGAMENTO'] == 'LISTA']['VALOR'].sum()
-                            valor_pix = df_pdv[df_pdv['TIPO DE PAGAMENTO'] == 'PIX']['VALOR'].sum()
-                            col1, col2, col3 = st.columns(3)
-                            with col1:
-                                st.metric("Total de Vendas (PDV)", f"R$ {valor_total:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
-                            with col2:
-                                st.metric("Vendas em Lista (PDV)", f"R$ {valor_lista:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
-                            with col3:
-                                st.metric("Vendas em PIX (PDV)", f"R$ {valor_pix:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+                            
+                            if categoria_escolhida == 'TODOS':
+                                # Mostrar todos os tipos de pagamento para TODOS
+                                valor_lista = df_pdv[df_pdv['TIPO DE PAGAMENTO'] == 'LISTA']['VALOR'].sum()
+                                valor_pix = df_pdv[df_pdv['TIPO DE PAGAMENTO'] == 'PIX']['VALOR'].sum()
+                                valor_dinheiro = df_pdv[df_pdv['TIPO DE PAGAMENTO'] == 'DINHEIRO']['VALOR'].sum()
+                                valor_debito = df_pdv[df_pdv['TIPO DE PAGAMENTO'] == 'DÉBITO']['VALOR'].sum()
+                                
+                                col1, col2, col3, col4, col5 = st.columns(5)
+                                with col1:
+                                    st.metric("Total (PDV)", f"R$ {valor_total:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+                                with col2:
+                                    st.metric("Lista (PDV)", f"R$ {valor_lista:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+                                with col3:
+                                    st.metric("PIX (PDV)", f"R$ {valor_pix:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+                                with col4:
+                                    st.metric("Dinheiro (PDV)", f"R$ {valor_dinheiro:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+                                with col5:
+                                    st.metric("Débito (PDV)", f"R$ {valor_debito:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+                            
+                            elif categoria_escolhida == 'POS':
+                                # POS: total geral, dinheiro, débito, pix, lista
+                                valor_dinheiro = df_pdv[df_pdv['TIPO DE PAGAMENTO'] == 'DINHEIRO']['VALOR'].sum()
+                                valor_debito = df_pdv[df_pdv['TIPO DE PAGAMENTO'] == 'DÉBITO']['VALOR'].sum()
+                                valor_pix = df_pdv[df_pdv['TIPO DE PAGAMENTO'] == 'PIX']['VALOR'].sum()
+                                valor_lista = df_pdv[df_pdv['TIPO DE PAGAMENTO'] == 'LISTA']['VALOR'].sum()
+                                
+                                col1, col2, col3, col4, col5 = st.columns(5)
+                                with col1:
+                                    st.metric("Total POS (PDV)", f"R$ {valor_total:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+                                with col2:
+                                    st.metric("Dinheiro (PDV)", f"R$ {valor_dinheiro:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+                                with col3:
+                                    st.metric("Débito (PDV)", f"R$ {valor_debito:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+                                with col4:
+                                    st.metric("PIX (PDV)", f"R$ {valor_pix:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+                                with col5:
+                                    st.metric("Lista (PDV)", f"R$ {valor_lista:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+                            
+                            elif categoria_escolhida == 'POS SOMENTE LISTA':
+                                # POS SOMENTE LISTA: total geral, lista, pix
+                                valor_lista = df_pdv[df_pdv['TIPO DE PAGAMENTO'] == 'LISTA']['VALOR'].sum()
+                                valor_pix = df_pdv[df_pdv['TIPO DE PAGAMENTO'] == 'PIX']['VALOR'].sum()
+                                
+                                col1, col2, col3 = st.columns(3)
+                                with col1:
+                                    st.metric("Total POS Lista (PDV)", f"R$ {valor_total:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+                                with col2:
+                                    st.metric("Lista (PDV)", f"R$ {valor_lista:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+                                with col3:
+                                    st.metric("PIX (PDV)", f"R$ {valor_pix:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+                            
+                            elif categoria_escolhida == 'TOTEM DE RECARGA':
+                                # TOTEM DE RECARGA: total geral, débito, pix, lista
+                                valor_debito = df_pdv[df_pdv['TIPO DE PAGAMENTO'] == 'DÉBITO']['VALOR'].sum()
+                                valor_pix = df_pdv[df_pdv['TIPO DE PAGAMENTO'] == 'PIX']['VALOR'].sum()
+                                valor_lista = df_pdv[df_pdv['TIPO DE PAGAMENTO'] == 'LISTA']['VALOR'].sum()
+                                
+                                col1, col2, col3, col4 = st.columns(4)
+                                with col1:
+                                    st.metric("Total Totem (PDV)", f"R$ {valor_total:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+                                with col2:
+                                    st.metric("Débito (PDV)", f"R$ {valor_debito:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+                                with col3:
+                                    st.metric("PIX (PDV)", f"R$ {valor_pix:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+                                with col4:
+                                    st.metric("Lista (PDV)", f"R$ {valor_lista:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+                            
+                            else:
+                                # Para outras categorias, mostrar total e alguns tipos básicos
+                                valor_lista = df_pdv[df_pdv['TIPO DE PAGAMENTO'] == 'LISTA']['VALOR'].sum()
+                                valor_pix = df_pdv[df_pdv['TIPO DE PAGAMENTO'] == 'PIX']['VALOR'].sum()
+                                
+                                col1, col2, col3 = st.columns(3)
+                                with col1:
+                                    st.metric("Total (PDV)", f"R$ {valor_total:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+                                with col2:
+                                    st.metric("Lista (PDV)", f"R$ {valor_lista:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+                                with col3:
+                                    st.metric("PIX (PDV)", f"R$ {valor_pix:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
 
                             # Gráfico de barras por dia
                             if 'DATA/HORA' in df_pdv.columns:
