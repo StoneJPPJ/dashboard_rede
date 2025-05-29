@@ -376,143 +376,145 @@ if meses_disponiveis:
                     if tipo_pag_escolhido != 'TODOS':
                         df_filtros = df_filtros[df_filtros['TIPO DE PAGAMENTO'] == tipo_pag_escolhido]
 
-                # --- GRÁFICO TOP 10 VENDAS POR PDV ---
-                st.subheader("Top 10 Vendas por PDV")
-                ordem_top = st.radio("Mostrar os 10 maiores ou menores?", ["Maiores", "Menores"], horizontal=True, key="top_ordem")
-                if not df_filtros.empty and 'PDV' in df_filtros.columns:
-                    agrupado = df_filtros.groupby('PDV')['VALOR'].sum().reset_index()
-                    agrupado = agrupado.sort_values('VALOR', ascending=(ordem_top=="Menores"))
-                    top10 = agrupado.head(10)
-                    fig_top = px.bar(
-                        top10,
-                        x='VALOR',
-                        y='PDV',
-                        orientation='h',
-                        title=f"Top 10 {'Menores' if ordem_top=='Menores' else 'Maiores'} Vendas por PDV",
-                        color='VALOR',
-                        color_continuous_scale='Blues' if tipo_pag_escolhido=="LISTA" else 'Greens',
-                    )
-                    fig_top.update_layout(
-                        xaxis_title="Valor de Vendas (R$)",
-                        yaxis_title="PDV",
-                        height=500
-                    )
-                    st.plotly_chart(fig_top, use_container_width=True)
-                else:
-                    st.info("Não há dados suficientes para gerar o Top 10.")
+                    # --- GRÁFICO TOP 10 VENDAS POR PDV ---
+                    st.subheader("Top 10 Vendas por PDV")
+                    ordem_top = st.radio("Mostrar os 10 maiores ou menores?", ["Maiores", "Menores"], horizontal=True, key="top_ordem")
+                    if not df_filtros.empty and 'PDV' in df_filtros.columns:
+                        agrupado = df_filtros.groupby('PDV')['VALOR'].sum().reset_index()
+                        agrupado = agrupado.sort_values('VALOR', ascending=(ordem_top=="Menores"))
+                        top10 = agrupado.head(10)
+                        fig_top = px.bar(
+                            top10,
+                            x='VALOR',
+                            y='PDV',
+                            orientation='h',
+                            title=f"Top 10 {'Menores' if ordem_top=='Menores' else 'Maiores'} Vendas por PDV",
+                            color='VALOR',
+                            color_continuous_scale='Blues' if tipo_pag_escolhido=="LISTA" else 'Greens',
+                        )
+                        fig_top.update_layout(
+                            xaxis_title="Valor de Vendas (R$)",
+                            yaxis_title="PDV",
+                            height=500
+                        )
+                        st.plotly_chart(fig_top, use_container_width=True)
+                    else:
+                        st.info("Não há dados suficientes para gerar o Top 10.")
 
-                # --- SÉRIE TEMPORAL POR PDV (filtrado por categoria) ---
-                st.subheader("Série Temporal de Vendas por PDV (Mês Selecionado)")
+                    # --- SÉRIE TEMPORAL POR PDV (filtrado por categoria) ---
+                    st.subheader("Série Temporal de Vendas por PDV (Mês Selecionado)")
 
-                if 'PDV' in df_mes.columns:
-                    # Filtrar PDVs baseado na categoria selecionada
-                    df_mes_para_pdv = df_mes.copy()
-                    if categoria_escolhida != 'TODOS':
-                        df_mes_para_pdv = df_mes_para_pdv[df_mes_para_pdv['TIPO DO TERMINAL'] == categoria_escolhida]
-                    
-                    pdvs_filtrados = sorted(df_mes_para_pdv['PDV'].dropna().unique().tolist())
-                    
-                    if pdvs_filtrados:
-                        pdv_escolhido = st.selectbox("Selecione o PDV para análise temporal", pdvs_filtrados, key="serie_pdv")
-                        df_pdv = df_mes_para_pdv[df_mes_para_pdv['PDV'] == pdv_escolhido].copy()
+                    if 'PDV' in df_mes.columns:
+                        # Filtrar PDVs baseado na categoria selecionada
+                        df_mes_para_pdv = df_mes.copy()
+                        if categoria_escolhida != 'TODOS':
+                            df_mes_para_pdv = df_mes_para_pdv[df_mes_para_pdv['TIPO DO TERMINAL'] == categoria_escolhida]
                         
-                        # Aplicar filtro de tipo de pagamento se selecionado
-                        if tipo_pag_escolhido != 'TODOS':
-                            df_pdv = df_pdv[df_pdv['TIPO DE PAGAMENTO'] == tipo_pag_escolhido]
+                        pdvs_filtrados = sorted(df_mes_para_pdv['PDV'].dropna().unique().tolist())
+                        
+                        if pdvs_filtrados:
+                            pdv_escolhido = st.selectbox("Selecione o PDV para análise temporal", pdvs_filtrados, key="serie_pdv")
+                            df_pdv = df_mes_para_pdv[df_mes_para_pdv['PDV'] == pdv_escolhido].copy()
+                            
+                            # Aplicar filtro de tipo de pagamento se selecionado
+                            if tipo_pag_escolhido != 'TODOS':
+                                df_pdv = df_pdv[df_pdv['TIPO DE PAGAMENTO'] == tipo_pag_escolhido]
 
-                        # Cards para o PDV específico
-                        valor_total = df_pdv['VALOR'].sum()
-                        valor_lista = df_pdv[df_pdv['TIPO DE PAGAMENTO'] == 'LISTA']['VALOR'].sum()
-                        valor_pix = df_pdv[df_pdv['TIPO DE PAGAMENTO'] == 'PIX']['VALOR'].sum()
-                        col1, col2, col3 = st.columns(3)
-                        with col1:
-                            st.metric("Total de Vendas (PDV)", f"R$ {valor_total:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
-                        with col2:
-                            st.metric("Vendas em Lista (PDV)", f"R$ {valor_lista:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
-                        with col3:
-                            st.metric("Vendas em PIX (PDV)", f"R$ {valor_pix:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+                            # Cards para o PDV específico
+                            valor_total = df_pdv['VALOR'].sum()
+                            valor_lista = df_pdv[df_pdv['TIPO DE PAGAMENTO'] == 'LISTA']['VALOR'].sum()
+                            valor_pix = df_pdv[df_pdv['TIPO DE PAGAMENTO'] == 'PIX']['VALOR'].sum()
+                            col1, col2, col3 = st.columns(3)
+                            with col1:
+                                st.metric("Total de Vendas (PDV)", f"R$ {valor_total:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+                            with col2:
+                                st.metric("Vendas em Lista (PDV)", f"R$ {valor_lista:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+                            with col3:
+                                st.metric("Vendas em PIX (PDV)", f"R$ {valor_pix:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
 
-                        # Gráfico de barras por dia
-                        if 'DATA/HORA' in df_pdv.columns:
-                            df_pdv['DATA'] = pd.to_datetime(df_pdv['DATA/HORA'], errors='coerce').dt.date
-                            agrupado = df_pdv.groupby('DATA')['VALOR'].sum().reset_index()
-                            fig_pdv = px.bar(
-                                agrupado,
-                                x='DATA',
-                                y='VALOR',
-                                title=f'Evolução Diária de Vendas do PDV {pdv_escolhido} em {mes_selecionado}',
-                            )
-                            fig_pdv.update_layout(xaxis_title="Dia", yaxis_title="Valor de Vendas (R$)", height=400)
-                            st.plotly_chart(fig_pdv, use_container_width=True)
-
-                            # Série temporal por SERIAL
-                            st.subheader("Série Temporal de Vendas por SERIAL do PDV Selecionado (Mês)")
-                            if 'SERIAL' in df_pdv.columns and 'DATA/HORA' in df_pdv.columns:
+                            # Gráfico de barras por dia
+                            if 'DATA/HORA' in df_pdv.columns:
                                 df_pdv['DATA'] = pd.to_datetime(df_pdv['DATA/HORA'], errors='coerce').dt.date
-                                agrupado_serial = df_pdv.groupby(['DATA', 'SERIAL'])['VALOR'].sum().reset_index()
-                                fig_serial = px.line(
-                                    agrupado_serial,
+                                agrupado = df_pdv.groupby('DATA')['VALOR'].sum().reset_index()
+                                fig_pdv = px.bar(
+                                    agrupado,
                                     x='DATA',
                                     y='VALOR',
-                                    color='SERIAL',
-                                    title=f'Evolução Diária de Vendas por SERIAL do PDV {pdv_escolhido} em {mes_selecionado}',
-                                    markers=True
+                                    title=f'Evolução Diária de Vendas do PDV {pdv_escolhido} em {mes_selecionado}',
                                 )
-                                fig_serial.update_layout(xaxis_title="Dia", yaxis_title="Valor de Vendas (R$)", height=400)
-                                st.plotly_chart(fig_serial, use_container_width=True)
-                            else:
-                                st.info("Coluna SERIAL não encontrada para este PDV.")
-                    else:
-                        st.info("Não há PDVs disponíveis para a categoria selecionada.")
+                                fig_pdv.update_layout(xaxis_title="Dia", yaxis_title="Valor de Vendas (R$)", height=400)
+                                st.plotly_chart(fig_pdv, use_container_width=True)
 
-                # --- SÉRIE TEMPORAL QUINZENAL POR TIPO DE PAGAMENTO ---
-                st.subheader("Série Temporal Quinzenal por Tipo de Pagamento (Mês Selecionado)")
+                                # Série temporal por SERIAL
+                                st.subheader("Série Temporal de Vendas por SERIAL do PDV Selecionado (Mês)")
+                                if 'SERIAL' in df_pdv.columns and 'DATA/HORA' in df_pdv.columns:
+                                    df_pdv['DATA'] = pd.to_datetime(df_pdv['DATA/HORA'], errors='coerce').dt.date
+                                    agrupado_serial = df_pdv.groupby(['DATA', 'SERIAL'])['VALOR'].sum().reset_index()
+                                    fig_serial = px.line(
+                                        agrupado_serial,
+                                        x='DATA',
+                                        y='VALOR',
+                                        color='SERIAL',
+                                        title=f'Evolução Diária de Vendas por SERIAL do PDV {pdv_escolhido} em {mes_selecionado}',
+                                        markers=True
+                                    )
+                                    fig_serial.update_layout(xaxis_title="Dia", yaxis_title="Valor de Vendas (R$)", height=400)
+                                    st.plotly_chart(fig_serial, use_container_width=True)
+                                else:
+                                    st.info("Coluna SERIAL não encontrada para este PDV.")
+                        else:
+                            st.info("Não há PDVs disponíveis para a categoria selecionada.")
 
-                if not df_filtros.empty and 'DATA/HORA' in df_filtros.columns:
-                    df_quinz = df_filtros.copy()
-                    df_quinz['DATA'] = pd.to_datetime(df_quinz['DATA/HORA'], errors='coerce').dt.date
-                    agrupado = df_quinz.groupby('DATA')['VALOR'].sum().reset_index()
-                    # Comparação quinzenal
-                    if not agrupado.empty:
-                        agrupado['DIA'] = pd.to_datetime(agrupado['DATA']).dt.day
-                        primeira_quinzena = agrupado[agrupado['DIA'] <= 15]['VALOR'].sum()
-                        segunda_quinzena = agrupado[agrupado['DIA'] > 15]['VALOR'].sum()
-                        colq1, colq2 = st.columns(2)
-                        with colq1:
-                            st.metric(
-                                label="1ª Quinzena",
-                                value=f"R$ {primeira_quinzena:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'),
-                                delta=f"{((primeira_quinzena-segunda_quinzena)/segunda_quinzena*100):+.1f}%" if segunda_quinzena else ""
-                            )
-                        with colq2:
-                            st.metric(
-                                label="2ª Quinzena",
-                                value=f"R$ {segunda_quinzena:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'),
-                                delta=f"{((segunda_quinzena-primeira_quinzena)/primeira_quinzena*100):+.1f}%" if primeira_quinzena else ""
-                            )
-                    # Gráfico quinzenal
-                    if tipo_pag_escolhido != "TODOS":
-                        tipo_label = tipo_pag_escolhido
+                    # --- SÉRIE TEMPORAL QUINZENAL POR TIPO DE PAGAMENTO ---
+                    st.subheader("Série Temporal Quinzenal por Tipo de Pagamento (Mês Selecionado)")
+
+                    if not df_filtros.empty and 'DATA/HORA' in df_filtros.columns:
+                        df_quinz = df_filtros.copy()
+                        df_quinz['DATA'] = pd.to_datetime(df_quinz['DATA/HORA'], errors='coerce').dt.date
+                        agrupado = df_quinz.groupby('DATA')['VALOR'].sum().reset_index()
+                        # Comparação quinzenal
+                        if not agrupado.empty:
+                            agrupado['DIA'] = pd.to_datetime(agrupado['DATA']).dt.day
+                            primeira_quinzena = agrupado[agrupado['DIA'] <= 15]['VALOR'].sum()
+                            segunda_quinzena = agrupado[agrupado['DIA'] > 15]['VALOR'].sum()
+                            colq1, colq2 = st.columns(2)
+                            with colq1:
+                                st.metric(
+                                    label="1ª Quinzena",
+                                    value=f"R$ {primeira_quinzena:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'),
+                                    delta=f"{((primeira_quinzena-segunda_quinzena)/segunda_quinzena*100):+.1f}%" if segunda_quinzena else ""
+                                )
+                            with colq2:
+                                st.metric(
+                                    label="2ª Quinzena",
+                                    value=f"R$ {segunda_quinzena:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'),
+                                    delta=f"{((segunda_quinzena-primeira_quinzena)/primeira_quinzena*100):+.1f}%" if primeira_quinzena else ""
+                                )
+                        # Gráfico quinzenal
+                        if tipo_pag_escolhido != "TODOS":
+                            tipo_label = tipo_pag_escolhido
+                        else:
+                            tipo_label = "TODOS os Tipos"
+                        fig_quinz = px.bar(
+                            agrupado,
+                            x='DATA',
+                            y='VALOR',
+                            title=f'Evolução Diária de Vendas ({tipo_label}) - {mes_selecionado}',
+                            color_discrete_sequence=['#1f77b4'] if tipo_pag_escolhido == 'LISTA' else ['#2ca02c']
+                        )
+                        fig_quinz.update_layout(xaxis_title="Dia", yaxis_title="Valor de Vendas (R$)", height=400)
+                        st.plotly_chart(fig_quinz, use_container_width=True)
                     else:
-                        tipo_label = "TODOS os Tipos"
-                    fig_quinz = px.bar(
-                        agrupado,
-                        x='DATA',
-                        y='VALOR',
-                        title=f'Evolução Diária de Vendas ({tipo_label}) - {mes_selecionado}',
-                        color_discrete_sequence=['#1f77b4'] if tipo_pag_escolhido == 'LISTA' else ['#2ca02c']
-                    )
-                    fig_quinz.update_layout(xaxis_title="Dia", yaxis_title="Valor de Vendas (R$)", height=400)
-                    st.plotly_chart(fig_quinz, use_container_width=True)
+                        st.info("Não há dados suficientes para análise quinzenal neste mês.")
                 else:
-                    st.info("Não há dados suficientes para análise quinzenal neste mês.")
-            else:
-                st.error(f"Não foi possível carregar os dados para {mes_selecionado}.")
+                    st.error(f"Não foi possível carregar os dados para {mes_selecionado}.")
+        else:
+            st.error(f"Não foi possível carregar os dados para {mes_selecionado} porque o arquivo não existe.")
     else:
-        st.error(f"Não foi possível carregar os dados para {mes_selecionado} porque o arquivo não existe.")
+        st.warning("Não há dados disponíveis para análise.")
 else:
     st.warning("Não há arquivos processados. Por favor, faça o upload de um arquivo CSV seguindo o padrão 'mês_ano.csv' (ex: janeiro_25.csv)")
 
 # Rodapé
 st.markdown("---")
-st.caption("Dashboard de Vendas © 2023 - Desenvolvido com Streamlit e Python") 
+st.caption("Dashboard de Vendas © 2025 - Desenvolvido por João Pedro Mendes") 
