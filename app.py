@@ -161,142 +161,220 @@ with st.expander("Status de carregamento dos arquivos"):
 
 # Widget de seleção de mês
 if meses_disponiveis:
-    mes_selecionado = st.selectbox("Selecione o mês", meses_disponiveis)
-    arquivo_selecionado = meses_arquivos[mes_selecionado]
+    # Gráficos de evolução (primeiro, antes dos filtros)
+    st.subheader("Evolução de Vendas por Tipo de Pagamento")
     
-    # Carregar dados do mês selecionado
-    if os.path.exists(os.path.join(PROCESSED_DIR, arquivo_selecionado)):
-        with st.spinner(f"Carregando dados de {mes_selecionado}..."):
-            df_mes = carregar_processado(arquivo_selecionado.replace('.parquet', ''))
-            if df_mes is not None:
-                # Layout em colunas para os cards
-                col1, col2, col3 = st.columns(3)
-                
-                # Calcular valores totais
-                valor_total = df_mes['VALOR'].sum()
-                valor_lista = df_mes[df_mes['TIPO DE PAGAMENTO'] == 'LISTA']['VALOR'].sum()
-                valor_pix = df_mes[df_mes['TIPO DE PAGAMENTO'] == 'PIX']['VALOR'].sum()
-                
-                # Card 1: Total
-                with col1:
-                    st.metric(
-                        label="Total de Vendas",
-                        value=f"R$ {valor_total:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
-                    )
-                
-                # Card 2: Lista
-                with col2:
-                    st.metric(
-                        label="Vendas em Lista",
-                        value=f"R$ {valor_lista:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
-                    )
-                
-                # Card 3: PIX
-                with col3:
-                    st.metric(
-                        label="Vendas em PIX",
-                        value=f"R$ {valor_pix:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
-                    )
-                
-                # Gráficos de evolução
-                st.subheader("Evolução de Vendas por Tipo de Pagamento")
-                
-                # Preparar dados para série temporal
-                dados_serie = []
-                for mes, arquivo in meses_arquivos.items():
-                    df_temp = carregar_processado(arquivo.replace('.parquet', ''))
-                    if df_temp is not None:
-                        df_temp = df_temp[df_temp['TIPO DE PAGAMENTO'].isin(['LISTA', 'PIX'])]
-                        agrupado = df_temp.groupby('TIPO DE PAGAMENTO')['VALOR'].sum().reset_index()
-                        for _, row in agrupado.iterrows():
-                            dados_serie.append({
-                                'Mês': mes,
-                                'TIPO DE PAGAMENTO': row['TIPO DE PAGAMENTO'],
-                                'VALOR': row['VALOR']
-                            })
-                
-                if dados_serie:
-                    df_serie = pd.DataFrame(dados_serie)
-                    
-                    # Ordenar meses cronologicamente
-                    ordem_meses = {mes: i for i, mes in enumerate(meses_disponiveis)}
-                    df_serie['ordem'] = df_serie['Mês'].map(ordem_meses)
-                    df_serie = df_serie.sort_values('ordem')
-                    
-                    # Gráfico de barras para LISTA e PIX
-                    df_lista = df_serie[df_serie['TIPO DE PAGAMENTO'] == 'LISTA'].copy()
-                    df_pix = df_serie[df_serie['TIPO DE PAGAMENTO'] == 'PIX'].copy()
-                    
-                    # Criar duas colunas para os gráficos ficarem lado a lado
-                    col_grafico1, col_grafico2 = st.columns(2)
-                    
-                    # Gráfico de LISTA na primeira coluna
-                    with col_grafico1:
-                        if not df_lista.empty:
-                            df_lista['Mês'] = pd.Categorical(df_lista['Mês'], categories=meses_disponiveis, ordered=True)
-                            fig_lista = px.bar(
-                                df_lista,
-                                x='Mês',
-                                y='VALOR',
-                                title='Evolução de Vendas em Lista',
-                                color_discrete_sequence=['#1f77b4']
-                            )
-                            fig_lista.update_layout(
-                                xaxis_title="Mês",
-                                yaxis_title="Valor de Vendas (R$)",
-                                height=400
-                            )
-                            st.plotly_chart(fig_lista, use_container_width=True)
-                        else:
-                            st.info("Não há dados de vendas em LISTA para exibir.")
-                    
-                    # Gráfico de PIX na segunda coluna
-                    with col_grafico2:
-                        if not df_pix.empty:
-                            df_pix['Mês'] = pd.Categorical(df_pix['Mês'], categories=meses_disponiveis, ordered=True)
-                            fig_pix = px.bar(
-                                df_pix,
-                                x='Mês',
-                                y='VALOR',
-                                title='Evolução de Vendas em PIX',
-                                color_discrete_sequence=['#2ca02c']
-                            )
-                            fig_pix.update_layout(
-                                xaxis_title="Mês",
-                                yaxis_title="Valor de Vendas (R$)",
-                                height=400
-                            )
-                            st.plotly_chart(fig_pix, use_container_width=True)
-                        else:
-                            st.info("Não há dados de vendas em PIX para exibir.")
-                else:
-                    st.warning("Não foi possível gerar as séries temporais porque não há dados suficientes.")
+    # Preparar dados para série temporal
+    dados_serie = []
+    for mes, arquivo in meses_arquivos.items():
+        df_temp = carregar_processado(arquivo.replace('.parquet', ''))
+        if df_temp is not None:
+            df_temp = df_temp[df_temp['TIPO DE PAGAMENTO'].isin(['LISTA', 'PIX'])]
+            agrupado = df_temp.groupby('TIPO DE PAGAMENTO')['VALOR'].sum().reset_index()
+            for _, row in agrupado.iterrows():
+                dados_serie.append({
+                    'Mês': mes,
+                    'TIPO DE PAGAMENTO': row['TIPO DE PAGAMENTO'],
+                    'VALOR': row['VALOR']
+                })
+    
+    if dados_serie:
+        df_serie = pd.DataFrame(dados_serie)
+        
+        # Ordenar meses cronologicamente
+        ordem_meses = {mes: i for i, mes in enumerate(meses_disponiveis)}
+        df_serie['ordem'] = df_serie['Mês'].map(ordem_meses)
+        df_serie = df_serie.sort_values('ordem')
+        
+        # Gráfico de barras para LISTA e PIX
+        df_lista = df_serie[df_serie['TIPO DE PAGAMENTO'] == 'LISTA'].copy()
+        df_pix = df_serie[df_serie['TIPO DE PAGAMENTO'] == 'PIX'].copy()
+        
+        # Criar duas colunas para os gráficos ficarem lado a lado
+        col_grafico1, col_grafico2 = st.columns(2)
+        
+        # Gráfico de LISTA na primeira coluna
+        with col_grafico1:
+            if not df_lista.empty:
+                df_lista['Mês'] = pd.Categorical(df_lista['Mês'], categories=meses_disponiveis, ordered=True)
+                fig_lista = px.bar(
+                    df_lista,
+                    x='Mês',
+                    y='VALOR',
+                    title='Evolução de Vendas em Lista',
+                    color_discrete_sequence=['#1f77b4']
+                )
+                fig_lista.update_layout(
+                    xaxis_title="Mês",
+                    yaxis_title="Valor de Vendas (R$)",
+                    height=400
+                )
+                st.plotly_chart(fig_lista, use_container_width=True)
+            else:
+                st.info("Não há dados de vendas em LISTA para exibir.")
+        
+        # Gráfico de PIX na segunda coluna
+        with col_grafico2:
+            if not df_pix.empty:
+                df_pix['Mês'] = pd.Categorical(df_pix['Mês'], categories=meses_disponiveis, ordered=True)
+                fig_pix = px.bar(
+                    df_pix,
+                    x='Mês',
+                    y='VALOR',
+                    title='Evolução de Vendas em PIX',
+                    color_discrete_sequence=['#2ca02c']
+                )
+                fig_pix.update_layout(
+                    xaxis_title="Mês",
+                    yaxis_title="Valor de Vendas (R$)",
+                    height=400
+                )
+                st.plotly_chart(fig_pix, use_container_width=True)
+            else:
+                st.info("Não há dados de vendas em PIX para exibir.")
+    else:
+        st.warning("Não foi possível gerar as séries temporais porque não há dados suficientes.")
 
-                # --- FILTROS GERAIS PARA OS GRÁFICOS ---
-                st.subheader("Filtros Gerais para Análise")
-
-                # Juntar todos os dados processados para obter as opções de filtro
-                all_dfs = []
-                for arquivo in meses_arquivos.values():
-                    df_temp = carregar_processado(arquivo.replace('.parquet', ''))
-                    if df_temp is not None:
-                        all_dfs.append(df_temp)
-                if all_dfs:
-                    df_all = pd.concat(all_dfs, ignore_index=True)
-                    # Filtro de categoria
-                    categorias = ['Todos'] + sorted(df_all['TIPO DO TERMINAL'].dropna().unique().tolist())
-                    categoria_escolhida = st.selectbox("Categoria (TIPO DO TERMINAL)", categorias, key="filtro_categoria")
-                    # Filtro de tipo de pagamento
-                    tipos_pagamento = ['Todos'] + sorted(df_all['TIPO DE PAGAMENTO'].dropna().unique().tolist())
-                    tipo_pag_escolhido = st.selectbox("Tipo de Pagamento", tipos_pagamento, key="filtro_tipo_pag")
-                    # Aplicar filtros
+    # --- FILTROS GERAIS ---
+    st.subheader("Filtros Gerais")
+    
+    # Juntar todos os dados processados para obter as opções de filtro
+    all_dfs = []
+    for arquivo in meses_arquivos.values():
+        df_temp = carregar_processado(arquivo.replace('.parquet', ''))
+        if df_temp is not None:
+            all_dfs.append(df_temp)
+    
+    if all_dfs:
+        df_all = pd.concat(all_dfs, ignore_index=True)
+        
+        # Layout dos filtros em colunas
+        col_filtro1, col_filtro2, col_filtro3 = st.columns(3)
+        
+        with col_filtro1:
+            mes_selecionado = st.selectbox("Selecione o mês", meses_disponiveis)
+        
+        with col_filtro2:
+            # Filtro de categoria
+            categorias = ['TODOS'] + sorted(df_all['TIPO DO TERMINAL'].dropna().unique().tolist())
+            categoria_escolhida = st.selectbox("Categoria de Terminal", categorias, key="filtro_categoria")
+        
+        with col_filtro3:
+            # Filtro de tipo de pagamento (dinâmico baseado na categoria)
+            if categoria_escolhida == 'TODOS':
+                tipos_pagamento_disponiveis = ['TODOS'] + sorted(df_all['TIPO DE PAGAMENTO'].dropna().unique().tolist())
+            elif categoria_escolhida == 'POS':
+                tipos_pagamento_disponiveis = ['TODOS', 'DINHEIRO', 'DÉBITO', 'PIX', 'LISTA']
+            elif categoria_escolhida == 'POS SOMENTE LISTA':
+                tipos_pagamento_disponiveis = ['TODOS', 'LISTA', 'PIX']
+            elif categoria_escolhida == 'TOTEM DE RECARGA':
+                tipos_pagamento_disponiveis = ['TODOS', 'DÉBITO', 'PIX', 'LISTA']
+            else:
+                # Para categorias não mapeadas, filtrar pelos tipos disponíveis nessa categoria
+                df_categoria = df_all[df_all['TIPO DO TERMINAL'] == categoria_escolhida]
+                tipos_pagamento_disponiveis = ['TODOS'] + sorted(df_categoria['TIPO DE PAGAMENTO'].dropna().unique().tolist())
+            
+            tipo_pag_escolhido = st.selectbox("Tipo de Pagamento", tipos_pagamento_disponiveis, key="filtro_tipo_pag")
+        
+        arquivo_selecionado = meses_arquivos[mes_selecionado]
+        
+        # Carregar dados do mês selecionado
+        if os.path.exists(os.path.join(PROCESSED_DIR, arquivo_selecionado)):
+            with st.spinner(f"Carregando dados de {mes_selecionado}..."):
+                df_mes = carregar_processado(arquivo_selecionado.replace('.parquet', ''))
+                if df_mes is not None:
+                    # Aplicar filtros ao dataframe do mês
+                    df_mes_filtrado = df_mes.copy()
+                    if categoria_escolhida != 'TODOS':
+                        df_mes_filtrado = df_mes_filtrado[df_mes_filtrado['TIPO DO TERMINAL'] == categoria_escolhida]
+                    if tipo_pag_escolhido != 'TODOS':
+                        df_mes_filtrado = df_mes_filtrado[df_mes_filtrado['TIPO DE PAGAMENTO'] == tipo_pag_escolhido]
+                    
+                    # --- CARDS DINÂMICOS BASEADOS NA CATEGORIA ---
+                    st.subheader(f"Métricas de Vendas - {mes_selecionado}")
+                    
+                    if categoria_escolhida == 'TODOS':
+                        # Mostrar todos os tipos de pagamento
+                        valor_total = df_mes_filtrado['VALOR'].sum()
+                        valor_lista = df_mes_filtrado[df_mes_filtrado['TIPO DE PAGAMENTO'] == 'LISTA']['VALOR'].sum()
+                        valor_pix = df_mes_filtrado[df_mes_filtrado['TIPO DE PAGAMENTO'] == 'PIX']['VALOR'].sum()
+                        valor_dinheiro = df_mes_filtrado[df_mes_filtrado['TIPO DE PAGAMENTO'] == 'DINHEIRO']['VALOR'].sum()
+                        valor_debito = df_mes_filtrado[df_mes_filtrado['TIPO DE PAGAMENTO'] == 'DÉBITO']['VALOR'].sum()
+                        
+                        col1, col2, col3, col4, col5 = st.columns(5)
+                        with col1:
+                            st.metric("Total de Vendas", f"R$ {valor_total:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+                        with col2:
+                            st.metric("Vendas em Lista", f"R$ {valor_lista:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+                        with col3:
+                            st.metric("Vendas em PIX", f"R$ {valor_pix:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+                        with col4:
+                            st.metric("Vendas em Dinheiro", f"R$ {valor_dinheiro:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+                        with col5:
+                            st.metric("Vendas em Débito", f"R$ {valor_debito:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+                    
+                    elif categoria_escolhida == 'POS':
+                        # POS: total geral, dinheiro, débito, pix, lista
+                        valor_total = df_mes_filtrado['VALOR'].sum()
+                        valor_dinheiro = df_mes_filtrado[df_mes_filtrado['TIPO DE PAGAMENTO'] == 'DINHEIRO']['VALOR'].sum()
+                        valor_debito = df_mes_filtrado[df_mes_filtrado['TIPO DE PAGAMENTO'] == 'DÉBITO']['VALOR'].sum()
+                        valor_pix = df_mes_filtrado[df_mes_filtrado['TIPO DE PAGAMENTO'] == 'PIX']['VALOR'].sum()
+                        valor_lista = df_mes_filtrado[df_mes_filtrado['TIPO DE PAGAMENTO'] == 'LISTA']['VALOR'].sum()
+                        
+                        col1, col2, col3, col4, col5 = st.columns(5)
+                        with col1:
+                            st.metric("Total POS", f"R$ {valor_total:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+                        with col2:
+                            st.metric("Dinheiro", f"R$ {valor_dinheiro:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+                        with col3:
+                            st.metric("Débito", f"R$ {valor_debito:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+                        with col4:
+                            st.metric("PIX", f"R$ {valor_pix:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+                        with col5:
+                            st.metric("Lista", f"R$ {valor_lista:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+                    
+                    elif categoria_escolhida == 'POS SOMENTE LISTA':
+                        # POS SOMENTE LISTA: total geral, lista, pix
+                        valor_total = df_mes_filtrado['VALOR'].sum()
+                        valor_lista = df_mes_filtrado[df_mes_filtrado['TIPO DE PAGAMENTO'] == 'LISTA']['VALOR'].sum()
+                        valor_pix = df_mes_filtrado[df_mes_filtrado['TIPO DE PAGAMENTO'] == 'PIX']['VALOR'].sum()
+                        
+                        col1, col2, col3 = st.columns(3)
+                        with col1:
+                            st.metric("Total POS Lista", f"R$ {valor_total:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+                        with col2:
+                            st.metric("Lista", f"R$ {valor_lista:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+                        with col3:
+                            st.metric("PIX", f"R$ {valor_pix:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+                    
+                    elif categoria_escolhida == 'TOTEM DE RECARGA':
+                        # TOTEM DE RECARGA: total geral, débito, pix, lista
+                        valor_total = df_mes_filtrado['VALOR'].sum()
+                        valor_debito = df_mes_filtrado[df_mes_filtrado['TIPO DE PAGAMENTO'] == 'DÉBITO']['VALOR'].sum()
+                        valor_pix = df_mes_filtrado[df_mes_filtrado['TIPO DE PAGAMENTO'] == 'PIX']['VALOR'].sum()
+                        valor_lista = df_mes_filtrado[df_mes_filtrado['TIPO DE PAGAMENTO'] == 'LISTA']['VALOR'].sum()
+                        
+                        col1, col2, col3, col4 = st.columns(4)
+                        with col1:
+                            st.metric("Total Totem", f"R$ {valor_total:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+                        with col2:
+                            st.metric("Débito", f"R$ {valor_debito:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+                        with col3:
+                            st.metric("PIX", f"R$ {valor_pix:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+                        with col4:
+                            st.metric("Lista", f"R$ {valor_lista:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+                    
+                    else:
+                        # Para outras categorias, mostrar total e os tipos disponíveis
+                        valor_total = df_mes_filtrado['VALOR'].sum()
+                        st.metric("Total de Vendas", f"R$ {valor_total:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+                    
+                    # Aplicar filtros para todos os dados (para usar nos gráficos seguintes)
                     df_filtros = df_all.copy()
-                    if categoria_escolhida != 'Todos':
+                    if categoria_escolhida != 'TODOS':
                         df_filtros = df_filtros[df_filtros['TIPO DO TERMINAL'] == categoria_escolhida]
-                    if tipo_pag_escolhido != 'Todos':
+                    if tipo_pag_escolhido != 'TODOS':
                         df_filtros = df_filtros[df_filtros['TIPO DE PAGAMENTO'] == tipo_pag_escolhido]
-                else:
-                    df_filtros = pd.DataFrame()
 
                 # --- GRÁFICO TOP 10 VENDAS POR PDV ---
                 st.subheader("Top 10 Vendas por PDV")
@@ -323,58 +401,71 @@ if meses_disponiveis:
                 else:
                     st.info("Não há dados suficientes para gerar o Top 10.")
 
-                # --- SÉRIE TEMPORAL POR PDV (apenas para o mês selecionado)
+                # --- SÉRIE TEMPORAL POR PDV (filtrado por categoria) ---
                 st.subheader("Série Temporal de Vendas por PDV (Mês Selecionado)")
 
                 if 'PDV' in df_mes.columns:
-                    pdvs = sorted(df_mes['PDV'].dropna().unique().tolist())
-                    pdv_escolhido = st.selectbox("Selecione o PDV para análise temporal", pdvs, key="serie_pdv")
-                    df_pdv = df_mes[df_mes['PDV'] == pdv_escolhido].copy()
+                    # Filtrar PDVs baseado na categoria selecionada
+                    df_mes_para_pdv = df_mes.copy()
+                    if categoria_escolhida != 'TODOS':
+                        df_mes_para_pdv = df_mes_para_pdv[df_mes_para_pdv['TIPO DO TERMINAL'] == categoria_escolhida]
+                    
+                    pdvs_filtrados = sorted(df_mes_para_pdv['PDV'].dropna().unique().tolist())
+                    
+                    if pdvs_filtrados:
+                        pdv_escolhido = st.selectbox("Selecione o PDV para análise temporal", pdvs_filtrados, key="serie_pdv")
+                        df_pdv = df_mes_para_pdv[df_mes_para_pdv['PDV'] == pdv_escolhido].copy()
+                        
+                        # Aplicar filtro de tipo de pagamento se selecionado
+                        if tipo_pag_escolhido != 'TODOS':
+                            df_pdv = df_pdv[df_pdv['TIPO DE PAGAMENTO'] == tipo_pag_escolhido]
 
-                    # Cards
-                    valor_total = df_pdv['VALOR'].sum()
-                    valor_lista = df_pdv[df_pdv['TIPO DE PAGAMENTO'] == 'LISTA']['VALOR'].sum()
-                    valor_pix = df_pdv[df_pdv['TIPO DE PAGAMENTO'] == 'PIX']['VALOR'].sum()
-                    col1, col2, col3 = st.columns(3)
-                    with col1:
-                        st.metric("Total de Vendas (PDV)", f"R$ {valor_total:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
-                    with col2:
-                        st.metric("Vendas em Lista (PDV)", f"R$ {valor_lista:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
-                    with col3:
-                        st.metric("Vendas em PIX (PDV)", f"R$ {valor_pix:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+                        # Cards para o PDV específico
+                        valor_total = df_pdv['VALOR'].sum()
+                        valor_lista = df_pdv[df_pdv['TIPO DE PAGAMENTO'] == 'LISTA']['VALOR'].sum()
+                        valor_pix = df_pdv[df_pdv['TIPO DE PAGAMENTO'] == 'PIX']['VALOR'].sum()
+                        col1, col2, col3 = st.columns(3)
+                        with col1:
+                            st.metric("Total de Vendas (PDV)", f"R$ {valor_total:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+                        with col2:
+                            st.metric("Vendas em Lista (PDV)", f"R$ {valor_lista:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+                        with col3:
+                            st.metric("Vendas em PIX (PDV)", f"R$ {valor_pix:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
 
-                    # Gráfico de barras por dia (ou por DATA/HORA, se quiser granularidade)
-                    if 'DATA/HORA' in df_pdv.columns:
-                        df_pdv['DATA'] = pd.to_datetime(df_pdv['DATA/HORA'], errors='coerce').dt.date
-                        agrupado = df_pdv.groupby('DATA')['VALOR'].sum().reset_index()
-                        fig_pdv = px.bar(
-                            agrupado,
-                            x='DATA',
-                            y='VALOR',
-                            title=f'Evolução Diária de Vendas do PDV {pdv_escolhido} em {mes_selecionado}',
-                        )
-                        fig_pdv.update_layout(xaxis_title="Dia", yaxis_title="Valor de Vendas (R$)", height=400)
-                        st.plotly_chart(fig_pdv, use_container_width=True)
+                        # Gráfico de barras por dia
+                        if 'DATA/HORA' in df_pdv.columns:
+                            df_pdv['DATA'] = pd.to_datetime(df_pdv['DATA/HORA'], errors='coerce').dt.date
+                            agrupado = df_pdv.groupby('DATA')['VALOR'].sum().reset_index()
+                            fig_pdv = px.bar(
+                                agrupado,
+                                x='DATA',
+                                y='VALOR',
+                                title=f'Evolução Diária de Vendas do PDV {pdv_escolhido} em {mes_selecionado}',
+                            )
+                            fig_pdv.update_layout(xaxis_title="Dia", yaxis_title="Valor de Vendas (R$)", height=400)
+                            st.plotly_chart(fig_pdv, use_container_width=True)
 
-                    # Série temporal por SERIAL (no mês selecionado)
-                    st.subheader("Série Temporal de Vendas por SERIAL do PDV Selecionado (Mês)")
-                    if 'SERIAL' in df_pdv.columns and 'DATA/HORA' in df_pdv.columns:
-                        df_pdv['DATA'] = pd.to_datetime(df_pdv['DATA/HORA'], errors='coerce').dt.date
-                        agrupado_serial = df_pdv.groupby(['DATA', 'SERIAL'])['VALOR'].sum().reset_index()
-                        fig_serial = px.line(
-                            agrupado_serial,
-                            x='DATA',
-                            y='VALOR',
-                            color='SERIAL',
-                            title=f'Evolução Diária de Vendas por SERIAL do PDV {pdv_escolhido} em {mes_selecionado}',
-                            markers=True
-                        )
-                        fig_serial.update_layout(xaxis_title="Dia", yaxis_title="Valor de Vendas (R$)", height=400)
-                        st.plotly_chart(fig_serial, use_container_width=True)
+                            # Série temporal por SERIAL
+                            st.subheader("Série Temporal de Vendas por SERIAL do PDV Selecionado (Mês)")
+                            if 'SERIAL' in df_pdv.columns and 'DATA/HORA' in df_pdv.columns:
+                                df_pdv['DATA'] = pd.to_datetime(df_pdv['DATA/HORA'], errors='coerce').dt.date
+                                agrupado_serial = df_pdv.groupby(['DATA', 'SERIAL'])['VALOR'].sum().reset_index()
+                                fig_serial = px.line(
+                                    agrupado_serial,
+                                    x='DATA',
+                                    y='VALOR',
+                                    color='SERIAL',
+                                    title=f'Evolução Diária de Vendas por SERIAL do PDV {pdv_escolhido} em {mes_selecionado}',
+                                    markers=True
+                                )
+                                fig_serial.update_layout(xaxis_title="Dia", yaxis_title="Valor de Vendas (R$)", height=400)
+                                st.plotly_chart(fig_serial, use_container_width=True)
+                            else:
+                                st.info("Coluna SERIAL não encontrada para este PDV.")
                     else:
-                        st.info("Coluna SERIAL não encontrada para este PDV.")
+                        st.info("Não há PDVs disponíveis para a categoria selecionada.")
 
-                # --- SÉRIE TEMPORAL QUINZENAL POR TIPO DE PAGAMENTO (usando os filtros gerais) ---
+                # --- SÉRIE TEMPORAL QUINZENAL POR TIPO DE PAGAMENTO ---
                 st.subheader("Série Temporal Quinzenal por Tipo de Pagamento (Mês Selecionado)")
 
                 if not df_filtros.empty and 'DATA/HORA' in df_filtros.columns:
@@ -399,11 +490,11 @@ if meses_disponiveis:
                                 value=f"R$ {segunda_quinzena:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'),
                                 delta=f"{((segunda_quinzena-primeira_quinzena)/primeira_quinzena*100):+.1f}%" if primeira_quinzena else ""
                             )
-                    # Corrigir f-string do título
-                    if tipo_pag_escolhido != "Todos":
+                    # Gráfico quinzenal
+                    if tipo_pag_escolhido != "TODOS":
                         tipo_label = tipo_pag_escolhido
                     else:
-                        tipo_label = "Todos os Tipos"
+                        tipo_label = "TODOS os Tipos"
                     fig_quinz = px.bar(
                         agrupado,
                         x='DATA',
