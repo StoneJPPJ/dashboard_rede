@@ -407,16 +407,17 @@ if meses_disponiveis:
                     
                     elif categoria_escolhida == 'LISTA/PIX':
                         # LISTA/PIX: total de vendas, lista, pix
+                        valor_total = df_mes_filtrado['VALOR'].sum()
                         valor_lista = df_mes_filtrado[df_mes_filtrado['TIPO DE PAGAMENTO'] == 'LISTA']['VALOR'].sum()
                         valor_pix = df_mes_filtrado[df_mes_filtrado['TIPO DE PAGAMENTO'] == 'PIX']['VALOR'].sum()
                         
                         col1, col2, col3 = st.columns(3)
                         with col1:
-                            st.metric("Total de Vendas (PDV)", f"R$ {valor_total:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+                            st.metric("Total de Vendas", f"R$ {valor_total:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
                         with col2:
-                            st.metric("Lista (PDV)", f"R$ {valor_lista:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+                            st.metric("Lista", f"R$ {valor_lista:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
                         with col3:
-                            st.metric("PIX (PDV)", f"R$ {valor_pix:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+                            st.metric("PIX", f"R$ {valor_pix:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
                     
                     elif categoria_escolhida == 'TOTEM DE RECARGA':
                         # TOTEM DE RECARGA: total geral, débito, pix, lista
