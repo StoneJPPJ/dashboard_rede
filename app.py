@@ -442,7 +442,7 @@ if meses_disponiveis:
 
                             # Gráfico de barras por dia
                             if 'DATA/HORA' in df_pdv.columns:
-                                df_pdv['DATA'] = pd.to_datetime(df_pdv['DATA/HORA'], errors='coerce').dt.date
+                                df_pdv['DATA'] = pd.to_datetime(df_pdv['DATA/HORA'], errors='coerce', dayfirst=True).dt.date
                                 agrupado = df_pdv.groupby('DATA')['VALOR'].sum().reset_index()
                                 fig_pdv = px.bar(
                                     agrupado,
@@ -456,7 +456,7 @@ if meses_disponiveis:
                                 # Série temporal por SERIAL
                                 st.subheader("Série Temporal de Vendas por SERIAL do PDV Selecionado (Mês)")
                                 if 'SERIAL' in df_pdv.columns and 'DATA/HORA' in df_pdv.columns:
-                                    df_pdv['DATA'] = pd.to_datetime(df_pdv['DATA/HORA'], errors='coerce').dt.date
+                                    df_pdv['DATA'] = pd.to_datetime(df_pdv['DATA/HORA'], errors='coerce', dayfirst=True).dt.date
                                     agrupado_serial = df_pdv.groupby(['DATA', 'SERIAL'])['VALOR'].sum().reset_index()
                                     fig_serial = px.line(
                                         agrupado_serial,
@@ -478,7 +478,7 @@ if meses_disponiveis:
 
                     if 'DATA/HORA' in df_mes_filtrado.columns:
                         df_quinz = df_mes_filtrado.copy()
-                        df_quinz['DATA'] = pd.to_datetime(df_quinz['DATA/HORA'], errors='coerce').dt.date
+                        df_quinz['DATA'] = pd.to_datetime(df_quinz['DATA/HORA'], errors='coerce', dayfirst=True).dt.date
                         agrupado = df_quinz.groupby('DATA')['VALOR'].sum().reset_index()
                         
                         # Encontrar o mês anterior para comparação
@@ -500,11 +500,11 @@ if meses_disponiveis:
                                 
                                 # Análise quinzenal do mês anterior
                                 df_quinz_anterior = df_mes_anterior.copy()
-                                df_quinz_anterior['DATA'] = pd.to_datetime(df_quinz_anterior['DATA/HORA'], errors='coerce').dt.date
+                                df_quinz_anterior['DATA'] = pd.to_datetime(df_quinz_anterior['DATA/HORA'], errors='coerce', dayfirst=True).dt.date
                                 agrupado_anterior = df_quinz_anterior.groupby('DATA')['VALOR'].sum().reset_index()
                                 
                                 if not agrupado_anterior.empty:
-                                    agrupado_anterior['DIA'] = pd.to_datetime(agrupado_anterior['DATA']).dt.day
+                                    agrupado_anterior['DIA'] = pd.to_datetime(agrupado_anterior['DATA'], dayfirst=True).dt.day
                                     primeira_quinzena_anterior = agrupado_anterior[agrupado_anterior['DIA'] <= 15]['VALOR'].sum()
                                     segunda_quinzena_anterior = agrupado_anterior[agrupado_anterior['DIA'] > 15]['VALOR'].sum()
                                 else:
@@ -519,7 +519,7 @@ if meses_disponiveis:
                         
                         # Comparação quinzenal atual
                         if not agrupado.empty:
-                            agrupado['DIA'] = pd.to_datetime(agrupado['DATA']).dt.day
+                            agrupado['DIA'] = pd.to_datetime(agrupado['DATA'], dayfirst=True).dt.day
                             primeira_quinzena = agrupado[agrupado['DIA'] <= 15]['VALOR'].sum()
                             segunda_quinzena = agrupado[agrupado['DIA'] > 15]['VALOR'].sum()
                             
