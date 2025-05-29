@@ -223,46 +223,52 @@ if meses_disponiveis:
                     df_serie['ordem'] = df_serie['Mês'].map(ordem_meses)
                     df_serie = df_serie.sort_values('ordem')
                     
-                    # Gráfico de barras para LISTA
+                    # Gráfico de barras para LISTA e PIX
                     df_lista = df_serie[df_serie['TIPO DE PAGAMENTO'] == 'LISTA'].copy()
                     df_pix = df_serie[df_serie['TIPO DE PAGAMENTO'] == 'PIX'].copy()
                     
-                    # Garantir que o eixo X está na ordem correta
-                    if not df_lista.empty:
-                        df_lista['Mês'] = pd.Categorical(df_lista['Mês'], categories=meses_disponiveis, ordered=True)
-                        fig_lista = px.bar(
-                            df_lista,
-                            x='Mês',
-                            y='VALOR',
-                            title='Evolução de Vendas em Lista',
-                            color_discrete_sequence=['#1f77b4']
-                        )
-                        fig_lista.update_layout(
-                            xaxis_title="Mês",
-                            yaxis_title="Valor de Vendas (R$)",
-                            height=400
-                        )
-                        st.plotly_chart(fig_lista, use_container_width=True)
-                    else:
-                        st.info("Não há dados de vendas em LISTA para exibir.")
+                    # Criar duas colunas para os gráficos ficarem lado a lado
+                    col_grafico1, col_grafico2 = st.columns(2)
                     
-                    if not df_pix.empty:
-                        df_pix['Mês'] = pd.Categorical(df_pix['Mês'], categories=meses_disponiveis, ordered=True)
-                        fig_pix = px.bar(
-                            df_pix,
-                            x='Mês',
-                            y='VALOR',
-                            title='Evolução de Vendas em PIX',
-                            color_discrete_sequence=['#2ca02c']
-                        )
-                        fig_pix.update_layout(
-                            xaxis_title="Mês",
-                            yaxis_title="Valor de Vendas (R$)",
-                            height=400
-                        )
-                        st.plotly_chart(fig_pix, use_container_width=True)
-                    else:
-                        st.info("Não há dados de vendas em PIX para exibir.")
+                    # Gráfico de LISTA na primeira coluna
+                    with col_grafico1:
+                        if not df_lista.empty:
+                            df_lista['Mês'] = pd.Categorical(df_lista['Mês'], categories=meses_disponiveis, ordered=True)
+                            fig_lista = px.bar(
+                                df_lista,
+                                x='Mês',
+                                y='VALOR',
+                                title='Evolução de Vendas em Lista',
+                                color_discrete_sequence=['#1f77b4']
+                            )
+                            fig_lista.update_layout(
+                                xaxis_title="Mês",
+                                yaxis_title="Valor de Vendas (R$)",
+                                height=400
+                            )
+                            st.plotly_chart(fig_lista, use_container_width=True)
+                        else:
+                            st.info("Não há dados de vendas em LISTA para exibir.")
+                    
+                    # Gráfico de PIX na segunda coluna
+                    with col_grafico2:
+                        if not df_pix.empty:
+                            df_pix['Mês'] = pd.Categorical(df_pix['Mês'], categories=meses_disponiveis, ordered=True)
+                            fig_pix = px.bar(
+                                df_pix,
+                                x='Mês',
+                                y='VALOR',
+                                title='Evolução de Vendas em PIX',
+                                color_discrete_sequence=['#2ca02c']
+                            )
+                            fig_pix.update_layout(
+                                xaxis_title="Mês",
+                                yaxis_title="Valor de Vendas (R$)",
+                                height=400
+                            )
+                            st.plotly_chart(fig_pix, use_container_width=True)
+                        else:
+                            st.info("Não há dados de vendas em PIX para exibir.")
                 else:
                     st.warning("Não foi possível gerar as séries temporais porque não há dados suficientes.")
 
