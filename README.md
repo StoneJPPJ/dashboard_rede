@@ -13,12 +13,12 @@ Este projeto é um dashboard interativo para análise de vendas, desenvolvido em
 ## 📂 Padrão dos arquivos CSV
 - O nome do arquivo deve seguir o padrão: `mes_ano.csv` (exemplo: `janeiro_25.csv`, `marco_25.csv`).
 - O arquivo deve conter, no mínimo, as colunas:
-  - `TIPO DE PAGAMENTO`
-  - `VALOR` ou `VALOR PAGO`
-  - `PDV` (ponto de venda)
-  - `TIPO DO TERMINAL`
-  - `SERIAL`
+  - `T.PGTO` (Tipo de Pagamento)
+  - `V.PAGO` (Valor Pago)
+  - `PDV` (Ponto de Venda)
+  - `EQUIPAMENTO` (Tipo do Terminal)
   - `DATA/HORA`
+  - `SERIAL`
 - O separador deve ser ponto e vírgula (`;`).
 - Os valores podem conter vírgula ou ponto como separador decimal.
 

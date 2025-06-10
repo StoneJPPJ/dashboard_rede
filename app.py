@@ -111,14 +111,14 @@ def processar_csv(arquivo, mes_nome=None):
                         on_bad_lines='skip',
                         skipinitialspace=True,
                         skip_blank_lines=True,
-                        dtype={'VALOR PAGO': str},
+                        dtype={'V.PAGO': str},
                         parse_dates=False,  # Evitar parsing automático de datas
                         date_parser=None    # Não usar parser automático
                     )
                 
                 # Renomear coluna de valor se necessário
-                if 'VALOR PAGO' in df.columns:
-                    df = df.rename(columns={'VALOR PAGO': 'VALOR'})
+                if 'V.PAGO' in df.columns:
+                    df = df.rename(columns={'V.PAGO': 'VALOR'})
                 
                 # Processar coluna de valor
                 if 'VALOR' in df.columns:
@@ -128,14 +128,14 @@ def processar_csv(arquivo, mes_nome=None):
                     df = df.dropna(subset=['VALOR'])
                     df = df[df['VALOR'] >= 0]
                 
-                # Processar tipo de pagamento
-                if 'TIPO DE PAGAMENTO' in df.columns:
-                    df['TIPO DE PAGAMENTO'] = df['TIPO DE PAGAMENTO'].astype(str).str.strip().str.upper()
+                # Processar tipo de pagamento (agora usando T.PGTO)
+                if 'T.PGTO' in df.columns:
+                    df['T.PGTO'] = df['T.PGTO'].astype(str).str.strip().str.upper()
                 
-                # Mapear categorias de terminal para nomes padronizados
-                if 'TIPO DO TERMINAL' in df.columns:
-                    df['TIPO DO TERMINAL'] = df['TIPO DO TERMINAL'].astype(str).str.strip()
-                    df['TIPO DO TERMINAL'] = df['TIPO DO TERMINAL'].apply(mapear_categoria_terminal)
+                # Mapear categorias de terminal para nomes padronizados (agora usando EQUIPAMENTO)
+                if 'EQUIPAMENTO' in df.columns:
+                    df['EQUIPAMENTO'] = df['EQUIPAMENTO'].astype(str).str.strip()
+                    df['EQUIPAMENTO'] = df['EQUIPAMENTO'].apply(mapear_categoria_terminal)
                 
                 # Tratar coluna de data/hora se existir
                 if 'DATA/HORA' in df.columns:
@@ -233,12 +233,12 @@ if meses_disponiveis:
     for mes, arquivo in meses_arquivos.items():
         df_temp = carregar_processado(arquivo.replace('.parquet', ''))
         if df_temp is not None:
-            df_temp = df_temp[df_temp['TIPO DE PAGAMENTO'].isin(['LISTA', 'PIX'])]
-            agrupado = df_temp.groupby('TIPO DE PAGAMENTO')['VALOR'].sum().reset_index()
+            df_temp = df_temp[df_temp['T.PGTO'].isin(['LISTA', 'PIX'])]
+            agrupado = df_temp.groupby('T.PGTO')['VALOR'].sum().reset_index()
             for _, row in agrupado.iterrows():
                 dados_serie.append({
                     'Mês': mes,
-                    'TIPO DE PAGAMENTO': row['TIPO DE PAGAMENTO'],
+                    'T.PGTO': row['T.PGTO'],
                     'VALOR': row['VALOR']
                 })
     
@@ -251,8 +251,8 @@ if meses_disponiveis:
         df_serie = df_serie.sort_values('ordem')
         
         # Gráfico de barras para LISTA e PIX
-        df_lista = df_serie[df_serie['TIPO DE PAGAMENTO'] == 'LISTA'].copy()
-        df_pix = df_serie[df_serie['TIPO DE PAGAMENTO'] == 'PIX'].copy()
+        df_lista = df_serie[df_serie['T.PGTO'] == 'LISTA'].copy()
+        df_pix = df_serie[df_serie['T.PGTO'] == 'PIX'].copy()
         
         # Criar duas colunas para os gráficos ficarem lado a lado
         col_grafico1, col_grafico2 = st.columns(2)
@@ -327,14 +327,14 @@ if meses_disponiveis:
             mes_selecionado = st.selectbox("Selecione o mês", meses_disponiveis)
         
         with col_filtro2:
-            # Filtro de categoria
-            categorias = ['TODOS'] + sorted(df_all['TIPO DO TERMINAL'].dropna().unique().tolist())
+            # Filtro de categoria (agora usando EQUIPAMENTO)
+            categorias = ['TODOS'] + sorted(df_all['EQUIPAMENTO'].dropna().unique().tolist())
             categoria_escolhida = st.selectbox("Categoria de Terminal", categorias, key="filtro_categoria")
         
         with col_filtro3:
-            # Filtro de tipo de pagamento (dinâmico baseado na categoria)
+            # Filtro de tipo de pagamento (dinâmico baseado na categoria) (agora usando T.PGTO)
             if categoria_escolhida == 'TODOS':
-                tipos_pagamento_disponiveis = ['TODOS'] + sorted(df_all['TIPO DE PAGAMENTO'].dropna().unique().tolist())
+                tipos_pagamento_disponiveis = ['TODOS'] + sorted(df_all['T.PGTO'].dropna().unique().tolist())
             elif categoria_escolhida == 'POS':
                 tipos_pagamento_disponiveis = ['TODOS', 'DINHEIRO', 'DÉBITO', 'PIX', 'LISTA']
             elif categoria_escolhida == 'LISTA/PIX':
@@ -343,8 +343,8 @@ if meses_disponiveis:
                 tipos_pagamento_disponiveis = ['TODOS', 'DÉBITO', 'PIX', 'LISTA']
             else:
                 # Para categorias não mapeadas, filtrar pelos tipos disponíveis nessa categoria
-                df_categoria = df_all[df_all['TIPO DO TERMINAL'] == categoria_escolhida]
-                tipos_pagamento_disponiveis = ['TODOS'] + sorted(df_categoria['TIPO DE PAGAMENTO'].dropna().unique().tolist())
+                df_categoria = df_all[df_all['EQUIPAMENTO'] == categoria_escolhida]
+                tipos_pagamento_disponiveis = ['TODOS'] + sorted(df_categoria['T.PGTO'].dropna().unique().tolist())
             
             tipo_pag_escolhido = st.selectbox("Tipo de Pagamento", tipos_pagamento_disponiveis, key="filtro_tipo_pag")
         
@@ -358,9 +358,9 @@ if meses_disponiveis:
                     # Aplicar filtros ao dataframe do mês
                     df_mes_filtrado = df_mes.copy()
                     if categoria_escolhida != 'TODOS':
-                        df_mes_filtrado = df_mes_filtrado[df_mes_filtrado['TIPO DO TERMINAL'] == categoria_escolhida]
+                        df_mes_filtrado = df_mes_filtrado[df_mes_filtrado['EQUIPAMENTO'] == categoria_escolhida]
                     if tipo_pag_escolhido != 'TODOS':
-                        df_mes_filtrado = df_mes_filtrado[df_mes_filtrado['TIPO DE PAGAMENTO'] == tipo_pag_escolhido]
+                        df_mes_filtrado = df_mes_filtrado[df_mes_filtrado['T.PGTO'] == tipo_pag_escolhido]
                     
                     # --- CARDS DINÂMICOS BASEADOS NA CATEGORIA ---
                     st.subheader(f"Métricas de Vendas - {mes_selecionado}")
@@ -368,10 +368,10 @@ if meses_disponiveis:
                     if categoria_escolhida == 'TODOS':
                         # Mostrar todos os tipos de pagamento
                         valor_total = df_mes_filtrado['VALOR'].sum()
-                        valor_lista = df_mes_filtrado[df_mes_filtrado['TIPO DE PAGAMENTO'] == 'LISTA']['VALOR'].sum()
-                        valor_pix = df_mes_filtrado[df_mes_filtrado['TIPO DE PAGAMENTO'] == 'PIX']['VALOR'].sum()
-                        valor_dinheiro = df_mes_filtrado[df_mes_filtrado['TIPO DE PAGAMENTO'] == 'DINHEIRO']['VALOR'].sum()
-                        valor_debito = df_mes_filtrado[df_mes_filtrado['TIPO DE PAGAMENTO'] == 'DÉBITO']['VALOR'].sum()
+                        valor_lista = df_mes_filtrado[df_mes_filtrado['T.PGTO'] == 'LISTA']['VALOR'].sum()
+                        valor_pix = df_mes_filtrado[df_mes_filtrado['T.PGTO'] == 'PIX']['VALOR'].sum()
+                        valor_dinheiro = df_mes_filtrado[df_mes_filtrado['T.PGTO'] == 'DINHEIRO']['VALOR'].sum()
+                        valor_debito = df_mes_filtrado[df_mes_filtrado['T.PGTO'] == 'DÉBITO']['VALOR'].sum()
                         
                         col1, col2, col3, col4, col5 = st.columns(5)
                         with col1:
@@ -388,10 +388,10 @@ if meses_disponiveis:
                     elif categoria_escolhida == 'POS':
                         # POS: total geral, dinheiro, débito, pix, lista
                         valor_total = df_mes_filtrado['VALOR'].sum()
-                        valor_dinheiro = df_mes_filtrado[df_mes_filtrado['TIPO DE PAGAMENTO'] == 'DINHEIRO']['VALOR'].sum()
-                        valor_debito = df_mes_filtrado[df_mes_filtrado['TIPO DE PAGAMENTO'] == 'DÉBITO']['VALOR'].sum()
-                        valor_pix = df_mes_filtrado[df_mes_filtrado['TIPO DE PAGAMENTO'] == 'PIX']['VALOR'].sum()
-                        valor_lista = df_mes_filtrado[df_mes_filtrado['TIPO DE PAGAMENTO'] == 'LISTA']['VALOR'].sum()
+                        valor_dinheiro = df_mes_filtrado[df_mes_filtrado['T.PGTO'] == 'DINHEIRO']['VALOR'].sum()
+                        valor_debito = df_mes_filtrado[df_mes_filtrado['T.PGTO'] == 'DÉBITO']['VALOR'].sum()
+                        valor_pix = df_mes_filtrado[df_mes_filtrado['T.PGTO'] == 'PIX']['VALOR'].sum()
+                        valor_lista = df_mes_filtrado[df_mes_filtrado['T.PGTO'] == 'LISTA']['VALOR'].sum()
                         
                         col1, col2, col3, col4, col5 = st.columns(5)
                         with col1:
@@ -408,8 +408,8 @@ if meses_disponiveis:
                     elif categoria_escolhida == 'LISTA/PIX':
                         # LISTA/PIX: total de vendas, lista, pix
                         valor_total = df_mes_filtrado['VALOR'].sum()
-                        valor_lista = df_mes_filtrado[df_mes_filtrado['TIPO DE PAGAMENTO'] == 'LISTA']['VALOR'].sum()
-                        valor_pix = df_mes_filtrado[df_mes_filtrado['TIPO DE PAGAMENTO'] == 'PIX']['VALOR'].sum()
+                        valor_lista = df_mes_filtrado[df_mes_filtrado['T.PGTO'] == 'LISTA']['VALOR'].sum()
+                        valor_pix = df_mes_filtrado[df_mes_filtrado['T.PGTO'] == 'PIX']['VALOR'].sum()
                         
                         col1, col2, col3 = st.columns(3)
                         with col1:
@@ -422,9 +422,9 @@ if meses_disponiveis:
                     elif categoria_escolhida == 'TOTEM DE RECARGA':
                         # TOTEM DE RECARGA: total geral, débito, pix, lista
                         valor_total = df_mes_filtrado['VALOR'].sum()
-                        valor_debito = df_mes_filtrado[df_mes_filtrado['TIPO DE PAGAMENTO'] == 'DÉBITO']['VALOR'].sum()
-                        valor_pix = df_mes_filtrado[df_mes_filtrado['TIPO DE PAGAMENTO'] == 'PIX']['VALOR'].sum()
-                        valor_lista = df_mes_filtrado[df_mes_filtrado['TIPO DE PAGAMENTO'] == 'LISTA']['VALOR'].sum()
+                        valor_debito = df_mes_filtrado[df_mes_filtrado['T.PGTO'] == 'DÉBITO']['VALOR'].sum()
+                        valor_pix = df_mes_filtrado[df_mes_filtrado['T.PGTO'] == 'PIX']['VALOR'].sum()
+                        valor_lista = df_mes_filtrado[df_mes_filtrado['T.PGTO'] == 'LISTA']['VALOR'].sum()
                         
                         col1, col2, col3, col4 = st.columns(4)
                         with col1:
@@ -444,9 +444,9 @@ if meses_disponiveis:
                     # Aplicar filtros para todos os dados (para usar nos gráficos seguintes)
                     df_filtros = df_all.copy()
                     if categoria_escolhida != 'TODOS':
-                        df_filtros = df_filtros[df_filtros['TIPO DO TERMINAL'] == categoria_escolhida]
+                        df_filtros = df_filtros[df_filtros['EQUIPAMENTO'] == categoria_escolhida]
                     if tipo_pag_escolhido != 'TODOS':
-                        df_filtros = df_filtros[df_filtros['TIPO DE PAGAMENTO'] == tipo_pag_escolhido]
+                        df_filtros = df_filtros[df_filtros['T.PGTO'] == tipo_pag_escolhido]
 
                     # --- GRÁFICO TOP 10 VENDAS POR PDV ---
                     st.subheader("Top 10 Vendas por PDV")
@@ -480,7 +480,7 @@ if meses_disponiveis:
                         # Filtrar PDVs baseado na categoria selecionada
                         df_mes_para_pdv = df_mes.copy()
                         if categoria_escolhida != 'TODOS':
-                            df_mes_para_pdv = df_mes_para_pdv[df_mes_para_pdv['TIPO DO TERMINAL'] == categoria_escolhida]
+                            df_mes_para_pdv = df_mes_para_pdv[df_mes_para_pdv['EQUIPAMENTO'] == categoria_escolhida]
                         
                         pdvs_filtrados = sorted(df_mes_para_pdv['PDV'].dropna().unique().tolist())
                         
@@ -490,17 +490,17 @@ if meses_disponiveis:
                             
                             # Aplicar filtro de tipo de pagamento se selecionado
                             if tipo_pag_escolhido != 'TODOS':
-                                df_pdv = df_pdv[df_pdv['TIPO DE PAGAMENTO'] == tipo_pag_escolhido]
+                                df_pdv = df_pdv[df_pdv['T.PGTO'] == tipo_pag_escolhido]
 
                             # Cards dinâmicos para o PDV específico baseados na categoria
                             valor_total = df_pdv['VALOR'].sum()
                             
                             if categoria_escolhida == 'TODOS':
                                 # Mostrar todos os tipos de pagamento para TODOS
-                                valor_lista = df_pdv[df_pdv['TIPO DE PAGAMENTO'] == 'LISTA']['VALOR'].sum()
-                                valor_pix = df_pdv[df_pdv['TIPO DE PAGAMENTO'] == 'PIX']['VALOR'].sum()
-                                valor_dinheiro = df_pdv[df_pdv['TIPO DE PAGAMENTO'] == 'DINHEIRO']['VALOR'].sum()
-                                valor_debito = df_pdv[df_pdv['TIPO DE PAGAMENTO'] == 'DÉBITO']['VALOR'].sum()
+                                valor_lista = df_pdv[df_pdv['T.PGTO'] == 'LISTA']['VALOR'].sum()
+                                valor_pix = df_pdv[df_pdv['T.PGTO'] == 'PIX']['VALOR'].sum()
+                                valor_dinheiro = df_pdv[df_pdv['T.PGTO'] == 'DINHEIRO']['VALOR'].sum()
+                                valor_debito = df_pdv[df_pdv['T.PGTO'] == 'DÉBITO']['VALOR'].sum()
                                 
                                 col1, col2, col3, col4, col5 = st.columns(5)
                                 with col1:
@@ -516,10 +516,10 @@ if meses_disponiveis:
                             
                             elif categoria_escolhida == 'POS':
                                 # POS: total geral, dinheiro, débito, pix, lista
-                                valor_dinheiro = df_pdv[df_pdv['TIPO DE PAGAMENTO'] == 'DINHEIRO']['VALOR'].sum()
-                                valor_debito = df_pdv[df_pdv['TIPO DE PAGAMENTO'] == 'DÉBITO']['VALOR'].sum()
-                                valor_pix = df_pdv[df_pdv['TIPO DE PAGAMENTO'] == 'PIX']['VALOR'].sum()
-                                valor_lista = df_pdv[df_pdv['TIPO DE PAGAMENTO'] == 'LISTA']['VALOR'].sum()
+                                valor_dinheiro = df_pdv[df_pdv['T.PGTO'] == 'DINHEIRO']['VALOR'].sum()
+                                valor_debito = df_pdv[df_pdv['T.PGTO'] == 'DÉBITO']['VALOR'].sum()
+                                valor_pix = df_pdv[df_pdv['T.PGTO'] == 'PIX']['VALOR'].sum()
+                                valor_lista = df_pdv[df_pdv['T.PGTO'] == 'LISTA']['VALOR'].sum()
                                 
                                 col1, col2, col3, col4, col5 = st.columns(5)
                                 with col1:
@@ -535,8 +535,8 @@ if meses_disponiveis:
                             
                             elif categoria_escolhida in ['POS SOMENTE LISTA', 'LISTA', 'LISTA/PIX']:
                                 # LISTA/PIX: total de vendas, lista, pix
-                                valor_lista = df_pdv[df_pdv['TIPO DE PAGAMENTO'] == 'LISTA']['VALOR'].sum()
-                                valor_pix = df_pdv[df_pdv['TIPO DE PAGAMENTO'] == 'PIX']['VALOR'].sum()
+                                valor_lista = df_pdv[df_pdv['T.PGTO'] == 'LISTA']['VALOR'].sum()
+                                valor_pix = df_pdv[df_pdv['T.PGTO'] == 'PIX']['VALOR'].sum()
                                 
                                 col1, col2, col3 = st.columns(3)
                                 with col1:
@@ -548,9 +548,9 @@ if meses_disponiveis:
                             
                             elif categoria_escolhida == 'TOTEM DE RECARGA':
                                 # TOTEM DE RECARGA: total geral, débito, pix, lista
-                                valor_debito = df_pdv[df_pdv['TIPO DE PAGAMENTO'] == 'DÉBITO']['VALOR'].sum()
-                                valor_pix = df_pdv[df_pdv['TIPO DE PAGAMENTO'] == 'PIX']['VALOR'].sum()
-                                valor_lista = df_pdv[df_pdv['TIPO DE PAGAMENTO'] == 'LISTA']['VALOR'].sum()
+                                valor_debito = df_pdv[df_pdv['T.PGTO'] == 'DÉBITO']['VALOR'].sum()
+                                valor_pix = df_pdv[df_pdv['T.PGTO'] == 'PIX']['VALOR'].sum()
+                                valor_lista = df_pdv[df_pdv['T.PGTO'] == 'LISTA']['VALOR'].sum()
                                 
                                 col1, col2, col3, col4 = st.columns(4)
                                 with col1:
@@ -564,8 +564,8 @@ if meses_disponiveis:
                             
                             else:
                                 # Para outras categorias, mostrar total e alguns tipos básicos
-                                valor_lista = df_pdv[df_pdv['TIPO DE PAGAMENTO'] == 'LISTA']['VALOR'].sum()
-                                valor_pix = df_pdv[df_pdv['TIPO DE PAGAMENTO'] == 'PIX']['VALOR'].sum()
+                                valor_lista = df_pdv[df_pdv['T.PGTO'] == 'LISTA']['VALOR'].sum()
+                                valor_pix = df_pdv[df_pdv['T.PGTO'] == 'PIX']['VALOR'].sum()
                                 
                                 col1, col2, col3 = st.columns(3)
                                 with col1:
@@ -629,9 +629,9 @@ if meses_disponiveis:
                                 
                                 # Aplicar os mesmos filtros ao mês anterior
                                 if categoria_escolhida != 'TODOS':
-                                    df_mes_anterior = df_mes_anterior[df_mes_anterior['TIPO DO TERMINAL'] == categoria_escolhida]
+                                    df_mes_anterior = df_mes_anterior[df_mes_anterior['EQUIPAMENTO'] == categoria_escolhida]
                                 if tipo_pag_escolhido != 'TODOS':
-                                    df_mes_anterior = df_mes_anterior[df_mes_anterior['TIPO DE PAGAMENTO'] == tipo_pag_escolhido]
+                                    df_mes_anterior = df_mes_anterior[df_mes_anterior['T.PGTO'] == tipo_pag_escolhido]
                                 
                                 # Análise quinzenal do mês anterior
                                 df_quinz_anterior = df_mes_anterior.copy()
