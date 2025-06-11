@@ -51,4 +51,4 @@ streamlit run app.py
 Pull requests são bem-vindos! Sinta-se à vontade para sugerir melhorias ou novas funcionalidades.
 
 ---
-Dashboard de Vendas © 2023 - Desenvolvido com Streamlit e Python 
+Dashboard de Vendas © 2025 - Desenvolvido com Streamlit e Python 
